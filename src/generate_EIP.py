@@ -110,78 +110,100 @@ def write_csv(fname, data):
         writer.writerow(data)
 
 
-if __name__ == "__main__":
-    CURRENT_BUDGET = 10000
-    RECUR_DAY = 14
-    SYMBOL = 'JFC'
-    START_DATE = parser.parse('3/16/2019').date()
-    END_DATE = parser.parse('3/15/2021').date()
+def main(symbol, current_budget, recur_day, start_date, end_date):
+    #current_budget = 10000
+    #recur_day = 14
+    #symbol = 'JFC'
+    start_date = parser.parse(start_date).date()
+    end_date = parser.parse(end_date).date()
 
-    fname_read = f'./data/{SYMBOL}_stockdata.csv'
+    fname_read = f'./data/{symbol}_stockdata.csv'
     with open(fname_read) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
         rem_budget = 0
         grand_total_buy_price = 0
         grand_total_lots = 0
+        max_price = 0
+        min_price = 9e+9
 
-        fname_write = f'./data/{SYMBOL}_analysed_stockdata.csv'
+        fname_write = f'./data/{symbol}_analysed_stockdata.csv'
         remove_csv(fname_write)
         write_csv(fname_write, ['stock', 'date', 'stock price', 'min board lot',
                   'reco', 'total buy price', 'total lots', 'change'])
 
         for row in csv_reader:
             if line_count == 0:
-                print(f'Column names are {", ".join(row)}')
+                # print(f'Column names are {", ".join(row)}')
                 line_count += 1
             else:
                 min_board_lot = get_board_Lot(float(row[4]))
                 stock_date = parser.parse(row[0])
-                trans_date = today_or_next_working_day(stock_date, RECUR_DAY)
+                trans_date = today_or_next_working_day(stock_date, recur_day)
                 stock_price = float(row[4])
 
                 # TODO: FIX problem with dates passing end of month on recur days
-                if stock_date.date() == trans_date and (START_DATE < stock_date.date() < END_DATE):
+                if stock_date.date() == trans_date and (start_date < stock_date.date() < end_date):
                     recommendation = 'BUY'
                     lots = compute_lot_alloc(
-                        float(row[4]), min_board_lot, CURRENT_BUDGET)
+                        float(row[4]), min_board_lot, current_budget)
                     total_buy_price = compute_buy_price(float(row[4]), lots)
-                    change = CURRENT_BUDGET - total_buy_price
+                    change = current_budget - total_buy_price
 
                     grand_total_buy_price += total_buy_price
                     grand_total_lots += lots
                     rem_budget = rem_budget + change
+
+                    min_price = float(row[4]) if float(
+                        row[4]) < min_price else min_price
+                    max_price = float(row[4]) if float(
+                        row[4]) > max_price else max_price
+
                 else:
                     recommendation = 'HOLD'
                     lots = 0
                     total_buy_price = 0
                     change = 0
 
-                print(
-                    f'\t{SYMBOL} ({row[0]}): PHP {float(row[4]):,.2f}. Recommend: {recommendation}. {lots} lots for total of PHP {total_buy_price:,.2f}')
+                # print(
+                #     f'\t{symbol} ({row[0]}): PHP {float(row[4]):,.2f}. Recommend: {recommendation}. {lots} lots for total of PHP {total_buy_price:,.2f}')
                 write_csv(fname_write, [
-                          SYMBOL, row[0], f'{stock_price:,.2f}', min_board_lot, recommendation, f'{total_buy_price:,.2f}', lots, f'{change:,.2f}'])
+                          symbol, row[0], f'{stock_price:,.2f}', min_board_lot, recommendation, f'{total_buy_price:,.2f}', lots, f'{change:,.2f}'])
 
                 line_count += 1
+
+        total_sell_price = compute_sell_price(float(row[4]), grand_total_lots)
+        portfolio_gain_or_loss = total_sell_price - grand_total_buy_price
+        portfolio_percentage = (
+            (total_sell_price/grand_total_buy_price) - 1) * 100
 
         print('\n')
         print(
             f'Running total for budget change: PHP {rem_budget:,.2f}.', end=" ")
         print(
             f'Grand total for bought stocks: PHP {grand_total_buy_price:,.2f}.', end=" ")
-        print(f'Grand total lots: {grand_total_lots:,.2f}')
+        print(f'Grand total lots: {grand_total_lots:,.0f}')
+
         print('\n')
         print(f'Latest stock price: PHP {float(row[4]):,.2f}.', end=" ")
-        total_sell_price = compute_sell_price(float(row[4]), grand_total_lots)
+        print(f'Highest stock price: PHP {max_price:,.2f}.', end=" ")
+        print(f'Lowest stock price: PHP {min_price:,.2f}.')
+
+        print('\n')
         print(
             f'Sell price ({grand_total_lots:,.0f} lots): PHP {total_sell_price:,.2f}.', end=" ")
-        portfolio_gain_or_loss = total_sell_price - grand_total_buy_price
         print(
-            f'Portfolio gain/loss: {portfolio_gain_or_loss:,.0f}.', end=" ")
-        portfolio_percentage = (
-            (total_sell_price/grand_total_buy_price) - 1) * 100
+            f'Portfolio gain/loss: PHP {portfolio_gain_or_loss:,.2f}.', end=" ")
         print(
             f'Portfolio Percentage: {portfolio_percentage:.2f} %')
+
         print('\n')
         print(f'Processed {line_count} lines.')
+
         print('\n')
+
+
+if __name__ == "__main__":
+
+    main(symbol='JFC', current_budget=10000, recur_day=15,
+         start_date='5/3/2012', end_date='4/11/2019')
