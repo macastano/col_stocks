@@ -184,13 +184,13 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
         print(
             f'Total bought stocks: PHP {grand_total_buy_price:,.2f} | Total lots: {grand_total_lots:,.0f}')
         print(
-            f'Remaining budget: PHP {rem_budget:,.2f}.')
-        print(
             f'[Stock price] LATEST: PHP {float(row[4]):,.2f} | HIGHEST: PHP {max_price:,.2f} | LOWEST: PHP {min_price:,.2f}')
+        print(
+            f'Remaining budget: PHP {rem_budget:,.2f}.')
 
         print('\n')
         print(
-            f'Sell price ({grand_total_lots:,.0f} lots): PHP {total_sell_price:,.2f}.')
+            f'Sell price ({grand_total_lots:,.0f} lots): PHP {total_sell_price:,.2f}')
         print(
             f'Portfolio gain/loss: PHP {portfolio_gain_or_loss:,.2f} | ({portfolio_percentage:.2f} %) | ({portfolio_months:,.0f} months)')
 
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     arg_parser.add_argument(
         '-start_date', type=str, required=True, help='start date of investment')
     arg_parser.add_argument(
-        '-end_date', type=str, required=True, help='end date of investment', default=datetime.datetime.today().strftime('%m/%d/%Y'))
+        '-end_date', type=str, required=False, help='end date of investment', default=datetime.datetime.today().strftime('%m/%d/%Y'))
 
     args = arg_parser.parse_args()
 
