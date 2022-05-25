@@ -1,3 +1,4 @@
+import argparse
 import csv
 import datetime
 import os
@@ -176,34 +177,46 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
         portfolio_gain_or_loss = total_sell_price - grand_total_buy_price
         portfolio_percentage = (
             (total_sell_price/grand_total_buy_price) - 1) * 100
+        portfolio_months = ((end_date.year - start_date.year)
+                            * 12) + (end_date.month - start_date.month)
 
         print('\n')
         print(
-            f'Running total for budget change: PHP {rem_budget:,.2f}.', end=" ")
+            f'Total bought stocks: PHP {grand_total_buy_price:,.2f} | Total lots: {grand_total_lots:,.0f}')
         print(
-            f'Grand total for bought stocks: PHP {grand_total_buy_price:,.2f}.', end=" ")
-        print(f'Grand total lots: {grand_total_lots:,.0f}')
-
-        print('\n')
-        print(f'Latest stock price: PHP {float(row[4]):,.2f}.', end=" ")
-        print(f'Highest stock price: PHP {max_price:,.2f}.', end=" ")
-        print(f'Lowest stock price: PHP {min_price:,.2f}.')
+            f'Remaining budget: PHP {rem_budget:,.2f}.')
+        print(
+            f'[Stock price] LATEST: PHP {float(row[4]):,.2f} | HIGHEST: PHP {max_price:,.2f} | LOWEST: PHP {min_price:,.2f}')
 
         print('\n')
         print(
-            f'Sell price ({grand_total_lots:,.0f} lots): PHP {total_sell_price:,.2f}.', end=" ")
+            f'Sell price ({grand_total_lots:,.0f} lots): PHP {total_sell_price:,.2f}.')
         print(
-            f'Portfolio gain/loss: PHP {portfolio_gain_or_loss:,.2f}.', end=" ")
-        print(
-            f'Portfolio Percentage: {portfolio_percentage:.2f} %')
+            f'Portfolio gain/loss: PHP {portfolio_gain_or_loss:,.2f} | ({portfolio_percentage:.2f} %) | ({portfolio_months:,.0f} months)')
 
         print('\n')
         print(f'Processed {line_count} lines.')
 
-        print('\n')
-
 
 if __name__ == "__main__":
 
-    main(symbol='JFC', current_budget=10000, recur_day=15,
-         start_date='5/3/2012', end_date='4/11/2019')
+    arg_parser = argparse.ArgumentParser(
+        description='TODO: create a description text')
+
+    arg_parser.add_argument(
+        '-stock', type=str, required=True, help='symbol of stock to query')
+    arg_parser.add_argument(
+        '-current_budget', type=float, required=True, help='EIP budget in PHP amount')
+    arg_parser.add_argument(
+        '-recur_day', type=int, required=True, help='recurring day of the month to invest (must be valid day)')
+    arg_parser.add_argument(
+        '-start_date', type=str, required=True, help='start date of investment')
+    arg_parser.add_argument(
+        '-end_date', type=str, required=True, help='end date of investment', default=datetime.datetime.today().strftime('%m/%d/%Y'))
+
+    args = arg_parser.parse_args()
+
+    print(f'\nStock: {args.stock} | Budget: PHP {args.current_budget:,.2f} | Recur day: {args.recur_day} | Start date: {args.start_date} | End date: {args.end_date}')
+
+    main(symbol=args.stock, current_budget=args.current_budget, recur_day=args.recur_day,
+         start_date=args.start_date, end_date=args.end_date)
