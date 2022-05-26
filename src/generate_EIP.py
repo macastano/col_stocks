@@ -2,7 +2,6 @@ import argparse
 import csv
 import datetime
 import os
-from webbrowser import get
 
 import pandas as pd
 from dateutil import parser
