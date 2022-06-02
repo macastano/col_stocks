@@ -73,20 +73,6 @@ def compute_sell_price(price, lot):
     commission = total_price * COMMISSION_RATE
     commission_with_VAT = 22.4 if commission < 20 else (commission * VAT)
 
-    return total_price - commission_with_VAT - (total_price * (SCCP_FEE + PSE_TRANS_FEE + SALES_TAX))
-
-
-def compute_sell_price(price, lot):
-    COMMISSION_RATE = 0.0025
-    VAT = 1.12
-    PSE_TRANS_FEE = 0.00005
-    SCCP_FEE = 0.0001
-    SALES_TAX = 0.006
-
-    total_price = float(price) * lot
-    commission = total_price * COMMISSION_RATE
-    commission_with_VAT = 22.4 if commission < 20 else (commission * VAT)
-
     return total_price + commission_with_VAT + (total_price * (SCCP_FEE + PSE_TRANS_FEE + SALES_TAX))
 
 
