@@ -112,6 +112,7 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
         grand_total_lots = 0
         max_price = 0
         min_price = 9e+9
+        defer_flag = False
 
         fname_write = f'./data/{symbol}_analysed_stockdata.csv'
         remove_csv(fname_write)
@@ -129,7 +130,7 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
                 stock_price = float(row[4])
 
                 # TODO: FIX problem with dates passing end of month on recur days
-                if stock_date.date() == trans_date and (start_date < stock_date.date() < end_date):
+                if defer_flag or (stock_date.date() == trans_date and (start_date < stock_date.date() < end_date)):
                     recommendation = 'BUY'
                     lots = compute_lot_alloc(
                         float(row[4]), min_board_lot, current_budget)
@@ -160,18 +161,25 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
 
         total_sell_price = compute_sell_price(float(row[4]), grand_total_lots)
         portfolio_gain_or_loss = total_sell_price - grand_total_buy_price
-        portfolio_percentage = (
-            (total_sell_price/grand_total_buy_price) - 1) * 100
         portfolio_months = ((end_date.year - start_date.year)
                             * 12) + (end_date.month - start_date.month)
+
+        if min_price == 9e+9:
+            min_price = max_price
+
+        if grand_total_buy_price > 0:
+            portfolio_percentage = (
+                (total_sell_price/grand_total_buy_price) - 1) * 100
+        else:
+            portfolio_percentage = 0
 
         print('\n')
         print(
             f'Total bought stocks: PHP {grand_total_buy_price:,.2f} | Total lots: {grand_total_lots:,.0f}')
         print(
             f'[Stock price] LATEST: PHP {float(row[4]):,.2f} | HIGHEST: PHP {max_price:,.2f} | LOWEST: PHP {min_price:,.2f}')
-        print(
-            f'Remaining budget: PHP {rem_budget:,.2f}.')
+        # print(
+        #     f'Remaining budget: PHP {rem_budget:,.2f}.')
 
         print('\n')
         print(
