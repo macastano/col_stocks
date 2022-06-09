@@ -7,9 +7,8 @@ import pandas as pd
 from dateutil import parser
 
 
-# TODO: FIX recur_day falling on a weekend, skipped
 def today_or_next_working_day(dt, recur_day):
-    recur_date = datetime.date(dt.year, dt.month, recur_day)
+    recur_date = datetime.datetime(dt.year, dt.month, recur_day)
     recur_day_name = recur_date.weekday()
 
     add_day = 0
@@ -121,16 +120,16 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
 
         for row in csv_reader:
             if line_count == 0:
-                # print(f'Column names are {", ".join(row)}')
                 line_count += 1
             else:
+                stock_price = float(row[4])
                 min_board_lot = get_board_Lot(float(row[4]))
+
                 stock_date = parser.parse(row[0])
                 trans_date = today_or_next_working_day(stock_date, recur_day)
-                stock_price = float(row[4])
 
                 # TODO: FIX problem with dates passing end of month on recur days
-                if defer_flag or (stock_date.date() == trans_date and (start_date < stock_date.date() < end_date)):
+                if ((defer_flag == False and stock_date > trans_date) or stock_date == trans_date) and (start_date < stock_date.date() < end_date):
                     recommendation = 'BUY'
                     lots = compute_lot_alloc(
                         float(row[4]), min_board_lot, current_budget)
@@ -146,17 +145,16 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
                     max_price = float(row[4]) if float(
                         row[4]) > max_price else max_price
 
+                    defer_flag = True
+
                 else:
                     recommendation = 'HOLD'
                     lots = 0
                     total_buy_price = 0
                     change = 0
 
-                # print(
-                #     f'\t{symbol} ({row[0]}): PHP {float(row[4]):,.2f}. Recommend: {recommendation}. {lots} lots for total of PHP {total_buy_price:,.2f}')
                 write_csv(fname_write, [
                           symbol, row[0], f'{stock_price:,.2f}', min_board_lot, recommendation, f'{total_buy_price:,.2f}', lots, f'{change:,.2f}'])
-
                 line_count += 1
 
         total_sell_price = compute_sell_price(float(row[4]), grand_total_lots)
@@ -178,8 +176,6 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
             f'Total bought stocks: PHP {grand_total_buy_price:,.2f} | Total lots: {grand_total_lots:,.0f}')
         print(
             f'[Stock price] LATEST: PHP {float(row[4]):,.2f} | HIGHEST: PHP {max_price:,.2f} | LOWEST: PHP {min_price:,.2f}')
-        # print(
-        #     f'Remaining budget: PHP {rem_budget:,.2f}.')
 
         print('\n')
         print(
