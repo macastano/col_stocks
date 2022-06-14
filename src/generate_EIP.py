@@ -2,13 +2,17 @@ import argparse
 import csv
 import datetime
 import os
+from calendar import isleap, monthrange
 
 import pandas as pd
-from dateutil import parser
+from dateutil import parser, rrule
 
 
 def today_or_next_working_day(dt, recur_day):
-    recur_date = datetime.datetime(dt.year, dt.month, recur_day)
+    if dt.month == 2 and isleap(dt.year) == False and recur_day > 28:
+        recur_date = datetime.datetime(dt.year, dt.month + 1, 1)
+    else:
+        recur_date = datetime.datetime(dt.year, dt.month, recur_day)
     recur_day_name = recur_date.weekday()
 
     add_day = 0
@@ -18,6 +22,36 @@ def today_or_next_working_day(dt, recur_day):
         add_day += 1
 
     return recur_date + datetime.timedelta(days=add_day)
+
+
+def date_range(start_date, end_date, recur_day, skip=False):
+    df = pd.DataFrame(columns=['date'])
+
+    start_date = parser.parse(start_date)
+    end_date = parser.parse(end_date)
+    recur_flag = False
+    for dt in rrule.rrule(rrule.DAILY, dtstart=start_date, until=end_date):
+        try:
+            recur_date = datetime.datetime(dt.year, dt.month, recur_day)
+        except:
+            recur_date = datetime.datetime(dt.year, dt.month, monthrange(
+                dt.year, dt.month)[1]) + datetime.timedelta(days=1)
+            #recur_flag = True
+
+        if len(df.index) > 0 and not skip:
+            latest_recur_date = parser.parse(df.iloc[-1]['date'])
+            delta = dt.month - latest_recur_date.month
+        else:
+            delta = 0
+        if dt == recur_date or delta > 1:
+            padding = ' ' * (9 - len(dt.strftime("%A")))
+            # print(
+            #     f'date: {dt.strftime("%Y-%m-%d")} | {dt.strftime("%A")}{padding} | {is_first_weekday_of_month(dt)}')
+            df_dt = pd.DataFrame([dt.strftime("%m/%d/%Y")], columns=['date'])
+            df = pd.concat([df, df_dt], ignore_index=True)
+            recur_flag = False
+
+    return df
 
 
 def get_board_Lot(stock_price):
@@ -105,13 +139,15 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
     fname_read = f'./data/{symbol}_stockdata.csv'
     with open(fname_read) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
+
         line_count = 0
+        buy_flag = False
+
         rem_budget = 0
         grand_total_buy_price = 0
         grand_total_lots = 0
         max_price = 0
         min_price = 9e+9
-        defer_flag = False
 
         fname_write = f'./data/{symbol}_analysed_stockdata.csv'
         remove_csv(fname_write)
@@ -129,7 +165,7 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
                 trans_date = today_or_next_working_day(stock_date, recur_day)
 
                 # TODO: FIX problem with dates passing end of month on recur days
-                if ((defer_flag == False and stock_date > trans_date) or stock_date == trans_date) and (start_date < stock_date.date() < end_date):
+                if ((buy_flag == False and stock_date > trans_date) or stock_date == trans_date) and (start_date < stock_date.date() < end_date):
                     recommendation = 'BUY'
                     lots = compute_lot_alloc(
                         float(row[4]), min_board_lot, current_budget)
@@ -145,7 +181,7 @@ def main(symbol, current_budget, recur_day, start_date, end_date):
                     max_price = float(row[4]) if float(
                         row[4]) > max_price else max_price
 
-                    defer_flag = True
+                    buy_flag = True
 
                 else:
                     recommendation = 'HOLD'
