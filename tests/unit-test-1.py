@@ -1,8 +1,13 @@
+import logging
+import sys
 from calendar import isleap, monthrange
 from datetime import datetime, timedelta
 
 import pandas as pd
+import plotly.graph_objects as go
+import yfinance
 from dateutil import parser, rrule
+from plotly.subplots import make_subplots
 
 
 def is_first_weekday_of_month(dt):
@@ -49,16 +54,44 @@ def date_range(start_date, end_date, recur_day, skip=False):
     return df_store
 
 
+def plot_range(range_df):
+    range_df['diff'] = range_df['close'] - range_df['open']
+    range_df.loc[range_df['diff'] >= 0, 'color'] = 'green'
+    range_df.loc[range_df['diff'] < 0, 'color'] = 'red'
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Candlestick(x=range_df['date'],
+                                 open=range_df['open'],
+                                 high=range_df['high'],
+                                 low=range_df['low'],
+                                 close=range_df['close'],
+                                 ))
+    fig.add_trace(go.Scatter(x=range_df['date'], y=range_df['close'].rolling(
+        window=1).mean(), marker_color='blue', opacity=0.1, name='MA'))
+    fig.add_trace(go.Bar(
+        x=range_df['date'], y=range_df['volume'], name='Volume', marker={'color': range_df['color']}, opacity=0.1), secondary_y=True)
+    fig.update_yaxes(range=[0, 70000000], secondary_y=True)
+    fig.update_yaxes(visible=False, secondary_y=True)
+    fig.update_layout(xaxis_rangeslider_visible=False)
+
+    return fig
+
+
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+
 df = pd.read_csv('./data/JFC_stockdata.csv')
 # start_date = "05/03/2012"
 start_date = "01/01/2015"
 end_date = "12/31/2015"
-recur_day = 29
+recur_day = 15
 
-print(
-    f'start_date: {start_date} | end_date: {end_date} | recur_day: {recur_day}')
+logging.debug(
+    f'\nstart_date: {start_date} | end_date: {end_date} | recur_day: {recur_day}')
+
 df_dt = date_range(start_date, end_date, recur_day, skip=False)
+logging.debug(f'\n{df_dt}')
 
-print('\n')
 merge_df = pd.merge(df, df_dt, how='inner', on=['date'])
-print(merge_df)
+logging.debug(f'\n{merge_df}')
+
+# plot_range(merge_df).show()
